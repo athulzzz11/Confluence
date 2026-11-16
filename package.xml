@@ -1,0 +1,18 @@
+<?xml version="1.0"?>
+<package format="3">
+  <name>confluence_sim</name>
+  <version>0.2.0</version>
+  <description>Confluence: vendor-agnostic orchestration of heterogeneous robot fleets (ROS 2, REST, TCP, VDA 5050), with a Gazebo warehouse simulation</description>
+  <maintainer email="athul23ra145@vjcet.org">Athul Krishna L</maintainer>
+  <license>Apache-2.0</license>
+  <exec_depend>rclpy</exec_depend>
+  <exec_depend>std_msgs</exec_depend>
+  <exec_depend>geometry_msgs</exec_depend>
+  <exec_depend>nav_msgs</exec_depend>
+  <exec_depend>sensor_msgs</exec_depend>
+  <exec_depend>ros_gz_sim</exec_depend>
+  <exec_depend>ros_gz_bridge</exec_depend>
+  <exec_depend>python3-yaml</exec_depend>
+  <exec_depend>python3-paho-mqtt</exec_depend>
+  <export><build_type>ament_python</build_type></export>
+</package>

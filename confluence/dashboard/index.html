@@ -1,0 +1,439 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Confluence · Fleet Console</title>
+<style>
+:root{
+  --bg:#0e1116; --panel:#151a21; --panel2:#1b212a; --line:#262e39; --text:#e6e9ee; --muted:#8792a2;
+  --accent:#4cc2ff; --ok:#3ecf8e; --warn:#f5b83d; --bad:#ff5d5d;
+  --r1:#2f7bf0; --r2:#f28c28; --r3:#35c25a; --r4:#e0c21c;
+  --mono: ui-monospace, "JetBrains Mono", "SFMono-Regular", Menlo, monospace;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font:14px/1.4 system-ui,-apple-system,"Segoe UI",sans-serif}
+header{display:flex;flex-wrap:wrap;gap:16px;align-items:center;padding:12px 18px;border-bottom:1px solid var(--line);background:#0b0e12}
+.brand{display:flex;align-items:baseline;gap:10px}
+.brand b{font-size:18px;letter-spacing:.22em}
+.brand span{color:var(--muted);font-size:12px}
+.pill{font:600 11px var(--mono);padding:3px 8px;border-radius:99px;border:1px solid var(--line);letter-spacing:.05em}
+.pill.live{color:var(--ok);border-color:#1f5c43;background:#0f2a20}
+.pill.stop{color:#fff;background:var(--bad);border-color:var(--bad)}
+.metrics{display:flex;gap:18px;margin-left:auto;flex-wrap:wrap}
+.metric{display:flex;flex-direction:column;align-items:flex-end}
+.metric b{font:600 18px var(--mono)}
+.metric span{color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.06em}
+.actions{display:flex;gap:8px;align-items:center}
+button,select,a.btn{font:500 13px system-ui,sans-serif;background:var(--panel2);color:var(--text);border:1px solid var(--line);
+  border-radius:6px;padding:6px 10px;cursor:pointer;text-decoration:none}
+button:hover,a.btn:hover{border-color:#3a4554}
+button.danger{background:#3a1215;border-color:#6b1f25;color:#ffb3b3;font-weight:700;letter-spacing:.06em}
+button.danger.on{background:var(--bad);color:#fff}
+button.small{padding:3px 8px;font-size:12px}
+main{display:grid;grid-template-columns:minmax(0,1fr) 380px;gap:14px;padding:14px 18px}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.panel h2{margin:0;padding:10px 14px;font:600 12px var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--muted);
+  border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center}
+#mapWrap{position:relative}
+canvas{display:block;width:100%;height:auto}
+.legend{display:flex;gap:14px;flex-wrap:wrap;padding:8px 14px;border-top:1px solid var(--line);color:var(--muted);font-size:12px}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:5px;vertical-align:-1px}
+#robots{display:flex;flex-direction:column;gap:10px;padding:10px}
+.card{background:var(--panel2);border:1px solid var(--line);border-left:4px solid var(--c);border-radius:8px;padding:10px 12px}
+.card.off{opacity:.55}
+.row{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.rid{font:700 15px var(--mono)}
+.vendor{color:var(--muted);font-size:12px}
+.proto{font:600 10px var(--mono);padding:2px 6px;border-radius:4px;background:#0b0e12;border:1px solid var(--line);color:var(--accent)}
+.state{font:600 11px var(--mono);padding:2px 7px;border-radius:4px}
+.s-IDLE{background:#1f2630;color:#b9c2cf}.s-MOVING{background:#0f2a3a;color:var(--accent)}.s-ACTING{background:#2b2210;color:var(--warn)}
+.s-PAUSED{background:#3a2f10;color:var(--warn)}.s-CHARGING{background:#0f2a20;color:var(--ok)}.s-OFFLINE,.s-ERROR{background:#3a1215;color:#ffb3b3}
+.kv{display:grid;grid-template-columns:repeat(3,1fr);gap:4px 10px;margin:8px 0;font-size:12px}
+.kv div span{display:block;color:var(--muted);font-size:10px;text-transform:uppercase;letter-spacing:.06em}
+.kv div b{font:500 12px var(--mono)}
+.bar{height:5px;background:#0b0e12;border-radius:3px;overflow:hidden;margin-top:3px}
+.bar i{display:block;height:100%;background:var(--ok)}
+.note{font-size:12px;color:var(--warn);margin-top:4px;min-height:16px}
+.btns{display:flex;gap:6px;margin-top:6px}
+.lower{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:14px;padding:0 18px 18px}
+.form{display:flex;gap:8px;flex-wrap:wrap;padding:10px 14px;border-bottom:1px solid var(--line)}
+.list{max-height:330px;overflow:auto;font:12px var(--mono)}
+.list .item{display:grid;grid-template-columns:70px 1fr auto;gap:8px;padding:6px 14px;border-bottom:1px solid #1d232c}
+.list .item:hover{background:#181e26}
+.ev{display:grid;grid-template-columns:86px 150px 1fr;gap:8px;padding:5px 14px;border-bottom:1px solid #1d232c;font:12px var(--mono)}
+.ev .t{color:var(--muted)} .ev .ty{color:var(--accent)} .ev.warn .ty{color:var(--warn)} .ev.bad .ty{color:var(--bad)} .ev.ok .ty{color:var(--ok)}
+.st{font-weight:600}
+.st-DONE{color:var(--ok)}.st-QUEUED{color:var(--muted)}.st-FAILED{color:var(--bad)}
+.muted{color:var(--muted)}
+.card.sel{outline:2px solid var(--c);outline-offset:1px}
+.card .head{cursor:pointer}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:6px;overflow:hidden}
+.seg button{border:0;border-radius:0;padding:3px 9px;font:600 11px var(--mono);background:#0b0e12;color:var(--muted)}
+.seg button.on{background:var(--c);color:#0b0e12}
+.ctl{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-top:7px}
+.ctl select{padding:3px 6px;font-size:12px;max-width:150px}
+.jog{display:grid;grid-template-columns:repeat(3,26px);grid-template-rows:repeat(2,22px);gap:2px;margin-left:auto}
+.jog button{padding:0;font-size:12px;line-height:20px}
+.jog .n{grid-column:2;grid-row:1}.jog .w{grid-column:1;grid-row:2}.jog .s{grid-column:2;grid-row:2}.jog .e{grid-column:3;grid-row:2}
+.hint{font-size:11px;color:var(--muted);padding:6px 14px;border-top:1px solid var(--line)}
+#toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:#3a1215;color:#ffd0d0;border:1px solid #6b1f25;
+  padding:8px 14px;border-radius:8px;font-size:13px;opacity:0;transition:opacity .2s;pointer-events:none;z-index:9}
+#toast.ok{background:#0f2a20;color:#b8f5d9;border-color:#1f5c43}
+#toast.show{opacity:1}
+.taskbtns{display:flex;gap:4px;justify-content:flex-end;margin-top:3px}
+.taskbtns button{padding:1px 6px;font-size:11px}
+canvas.aim{cursor:crosshair}
+@media (max-width:1100px){main,.lower{grid-template-columns:1fr}.metrics{margin-left:0}}
+</style>
+</head>
+<body>
+<header>
+  <div class="brand"><b>CONFLUENCE</b><span id="subtitle">vendor-agnostic fleet orchestration</span></div>
+  <span id="status" class="pill live">LIVE</span>
+  <div class="metrics">
+    <div class="metric"><b id="m-done">0</b><span>tasks done</span></div>
+    <div class="metric"><b id="m-open">0</b><span>open</span></div>
+    <div class="metric"><b id="m-conf">0</b><span>conflicts</span></div>
+    <div class="metric"><b id="m-dead">0</b><span>deadlocks fixed</span></div>
+    <div class="metric"><b id="m-safe">0</b><span>safety stops</span></div>
+    <div class="metric"><b id="m-link">0</b><span>link losses</span></div>
+    <div class="metric"><b id="m-speed">0</b><span>speed viol.</span></div>
+  </div>
+  <div class="actions">
+    <label class="muted"><input type="checkbox" id="auto" checked> auto tasks</label>
+    <a class="btn" href="/api/report" target="_blank">Audit report</a>
+    <button id="estop" class="danger">FLEET STOP</button>
+  </div>
+</header>
+
+<main>
+  <section class="panel" id="mapWrap">
+    <h2>Live map <span id="clock" class="muted"></span></h2>
+    <canvas id="map" width="1200" height="840"></canvas>
+    <div class="legend">
+      <span><i style="background:var(--r1)"></i>r1 · ROS 2</span>
+      <span><i style="background:var(--r2)"></i>r2 · REST</span>
+      <span><i style="background:var(--r3)"></i>r3 · TCP</span>
+      <span><i style="background:var(--r4)"></i>r4 · VDA 5050</span>
+      <span><i style="background:rgba(245,184,61,.35)"></i>speed-limited zone</span>
+      <span>● reserved node &nbsp; ┅ planned route</span>
+      <span><i style="background:#ffd64d;border-radius:50%"></i>guided passenger &nbsp; ◔ working</span>
+    </div>
+  </section>
+  <section class="panel">
+    <h2>Robots <span class="muted" id="fleetsize"></span></h2>
+    <div id="robots"></div>
+    <div class="hint">Click a robot to select it, then click anywhere on the map to send it there, or use the arrow keys.
+      MANUAL robots only move when you tell them; AUTO robots get tasks from Confluence.</div>
+  </section>
+</main>
+
+<div class="lower">
+  <section class="panel">
+    <h2>Tasks</h2>
+    <div class="form">
+      <select id="kind"></select>
+      <select id="pickup"></select>
+      <select id="dropoff"></select>
+      <button id="addTask">Dispatch</button>
+    </div>
+    <div class="list" id="tasks"></div>
+  </section>
+  <section class="panel">
+    <h2>Event log <span class="muted">compliance trail</span></h2>
+    <div class="list" id="events"></div>
+  </section>
+</div>
+
+<div id="toast"></div>
+<script>
+const COLORS = {r1:"#2f7bf0", r2:"#f28c28", r3:"#35c25a", r4:"#e0c21c"};
+// map canvas aspect follows the site bounds
+const col = id => COLORS[id] || "#9aa";
+let SITE = null, STATE = null;
+const $ = id => document.getElementById(id);
+let SELECTED = null;
+function toast(msg, ok=false){ const t=$("toast"); t.textContent=msg; t.className=(ok?"ok ":"")+"show";
+  clearTimeout(t._h); t._h=setTimeout(()=>t.className="", 2600); }
+async function post(url, body={}){
+  try{
+    const r = await fetch(url, {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify(body)});
+    const j = await r.json().catch(()=>({}));
+    if(!r.ok || j.error){ toast(j.error || `request failed (${r.status})`); return null; }
+    return j;
+  }catch(e){ toast("Confluence not reachable"); return null; }
+}
+
+// ---------------------------------------------------------------- map
+const cv = $("map"), cx = cv.getContext("2d");
+function tf(){
+  const [x0,y0,x1,y1] = SITE.bounds, pad = 30;
+  const s = Math.min((cv.width-2*pad)/(x1-x0), (cv.height-2*pad)/(y1-y0));
+  const ox = (cv.width - s*(x1-x0))/2, oy = (cv.height - s*(y1-y0))/2;
+  return {s, X:x=>ox+(x-x0)*s, Y:y=>oy+(y1-y)*s};
+}
+function draw(){
+  if(!SITE) return;
+  const {s,X,Y} = tf(); const [x0,y0,x1,y1] = SITE.bounds;
+  cx.clearRect(0,0,cv.width,cv.height);
+  cx.fillStyle="#1a2028"; cx.fillRect(X(x0),Y(y1),(x1-x0)*s,(y1-y0)*s);
+  cx.strokeStyle="#3b4553"; cx.lineWidth=4; cx.strokeRect(X(x0),Y(y1),(x1-x0)*s,(y1-y0)*s);
+  // zones
+  for(const [name,zx0,zy0,zx1,zy1,v] of SITE.zones){
+    cx.fillStyle="rgba(245,184,61,.10)"; cx.fillRect(X(zx0),Y(zy1),(zx1-zx0)*s,(zy1-zy0)*s);
+    cx.strokeStyle="rgba(245,184,61,.45)"; cx.setLineDash([6,5]); cx.lineWidth=1.5;
+    cx.strokeRect(X(zx0),Y(zy1),(zx1-zx0)*s,(zy1-zy0)*s); cx.setLineDash([]);
+    cx.fillStyle="rgba(245,184,61,.85)"; cx.font="11px ui-monospace,monospace";
+    cx.fillText(`${name.replace("_"," ")} ≤ ${v} m/s`, X(zx0)+6, Y(zy1)+14);
+  }
+  // static layout
+  const fill = {rack:"#24365a", conveyor:"#3a3f46", pallet:"#5a4630", charger:"#1d4d3a", table:"#4a4537", door:"#d9a92b",
+    seats:"#2a3a5c", podium:"#4a4f5a", cafe:"#5a3d2a", desk:"#2f5f8a", shop:"#3b4652", planter:"#2e5a37",
+    column:"#5a6068", trolleys:"#6b3a3a", queue:"rgba(110,140,220,.22)", counter:"#4b4f58", belt:"#26282c",
+    partition:"#3d6a82"};
+  for(const [kind,cxw,cyw,sx,sy,label] of SITE.shapes){
+    cx.fillStyle = fill[kind]||"#333"; cx.fillRect(X(cxw-sx/2),Y(cyw+sy/2),sx*s,sy*s);
+    if(label && kind!=="door" && sx*s > 30){ cx.fillStyle="#c9d1dc"; cx.font="600 11px system-ui"; cx.textAlign="center";
+      cx.fillText(label, X(cxw), Y(cyw)+4); cx.textAlign="left"; }
+  }
+  // roadmap
+  cx.strokeStyle="#2c3644"; cx.lineWidth=2;
+  for(const [a,b] of SITE.edges){ const [ax,ay]=SITE.nodes[a], [bx,by]=SITE.nodes[b];
+    cx.beginPath(); cx.moveTo(X(ax),Y(ay)); cx.lineTo(X(bx),Y(by)); cx.stroke(); }
+  for(const [id,[nx,ny]] of Object.entries(SITE.nodes)){
+    cx.fillStyle="#3c4858"; cx.beginPath(); cx.arc(X(nx),Y(ny),2.5,0,7); cx.fill(); }
+  // station labels
+  cx.font="10px ui-monospace,monospace"; cx.fillStyle="#7d8898";
+  for(const [name,nid] of Object.entries(SITE.stations)){ if(name.startsWith("chg")) continue;
+    const [nx,ny]=SITE.nodes[nid]; cx.fillText(name, X(nx)+5, Y(ny)-6); }
+  if(!STATE) return;
+  // reservations + routes
+  for(const [nid,rid] of Object.entries(STATE.reservations)){ const [nx,ny]=SITE.nodes[nid];
+    cx.strokeStyle=col(rid); cx.lineWidth=2.5; cx.beginPath(); cx.arc(X(nx),Y(ny),9,0,7); cx.stroke(); }
+  for(const r of STATE.robots){
+    if(!r.path.length) continue;
+    cx.strokeStyle=col(r.robot_id); cx.globalAlpha=.6; cx.setLineDash([7,6]); cx.lineWidth=2.5;
+    cx.beginPath(); cx.moveTo(X(r.x),Y(r.y));
+    for(const n of r.path){ const [nx,ny]=SITE.nodes[n]; cx.lineTo(X(nx),Y(ny)); }
+    cx.stroke(); cx.setLineDash([]); cx.globalAlpha=1;
+  }
+  // manual goals
+  for(const r of STATE.robots){
+    if(!r.manual_goal || r.manual_goal===r.current_node) continue;
+    const [gx,gy]=SITE.nodes[r.manual_goal];
+    cx.strokeStyle=col(r.robot_id); cx.lineWidth=2; cx.beginPath(); cx.moveTo(X(gx),Y(gy)); cx.lineTo(X(gx),Y(gy)-22); cx.stroke();
+    cx.fillStyle=col(r.robot_id); cx.beginPath(); cx.moveTo(X(gx),Y(gy)-22); cx.lineTo(X(gx)+13,Y(gy)-17); cx.lineTo(X(gx),Y(gy)-12); cx.fill();
+  }
+  // robots
+  for(const r of STATE.robots){
+    const off = r.state==="OFFLINE";
+    if(r.robot_id===SELECTED){ cx.strokeStyle=col(r.robot_id); cx.lineWidth=2; cx.setLineDash([4,3]);
+      cx.beginPath(); cx.arc(X(r.x),Y(r.y),0.75*s,0,7); cx.stroke(); cx.setLineDash([]); }
+    cx.save(); cx.translate(X(r.x),Y(r.y)); cx.rotate(-r.yaw);
+    const L=0.75*s, W=0.52*s;
+    cx.fillStyle = off ? "#555" : col(r.robot_id); cx.globalAlpha = off?.6:1;
+    cx.beginPath(); cx.roundRect(-L/2,-W/2,L,W,4); cx.fill();
+    cx.fillStyle="#fff"; cx.beginPath(); cx.moveTo(L/2-2,0); cx.lineTo(L/2-10,-6); cx.lineTo(L/2-10,6); cx.fill();
+    cx.restore();
+    const esc = r.extra && r.extra.escort;
+    if(esc && esc.active && esc.guest_distance != null){      // the passenger it is guiding (from its rear sensor)
+      const d = Math.min(esc.guest_distance, 6), gx = r.x - d*Math.cos(r.yaw), gy = r.y - d*Math.sin(r.yaw);
+      cx.strokeStyle="rgba(255,214,77,.5)"; cx.setLineDash([3,4]); cx.lineWidth=1.5;
+      cx.beginPath(); cx.moveTo(X(r.x),Y(r.y)); cx.lineTo(X(gx),Y(gy)); cx.stroke(); cx.setLineDash([]);
+      cx.fillStyle="#ffd64d"; cx.beginPath(); cx.arc(X(gx),Y(gy),0.2*s,0,7); cx.fill();
+      cx.beginPath(); cx.arc(X(gx),Y(gy)-0.34*s,0.11*s,0,7); cx.fill();
+      cx.font="10px ui-monospace,monospace"; cx.fillText("passenger", X(gx)+8, Y(gy)+4);
+    }
+    if(r.work_left_s != null){                                 // working: progress ring
+      cx.strokeStyle="#f5b83d"; cx.lineWidth=3; cx.beginPath();
+      cx.arc(X(r.x),Y(r.y),0.62*s,-Math.PI/2,-Math.PI/2+2*Math.PI*(1-r.work_left_s/(r.work_total_s||1))); cx.stroke();
+    }
+    cx.font="700 12px ui-monospace,monospace"; cx.textAlign="center";
+    cx.fillStyle="#0b0e12"; cx.fillText(r.robot_id, X(r.x)+1, Y(r.y)-W/2-7+1);
+    cx.fillStyle= off ? "#ff8c8c" : "#fff"; cx.fillText(r.robot_id + (off?" ⚠ offline":r.safety_stop?" ⛔":r.waiting_for?" ⏸":""), X(r.x), Y(r.y)-W/2-7);
+    cx.textAlign="left";
+  }
+}
+
+// ---------------------------------------------------------------- panels
+const fmt = (v,d=1) => v==null ? "—" : Number(v).toFixed(d);
+const CARDS = {};
+function stationOptions(){
+  return Object.keys(SITE.stations).sort((a,b)=>(a.startsWith("chg")-b.startsWith("chg")) || a.localeCompare(b))
+    .map(k=>`<option value="${k}">${k}</option>`).join("");
+}
+function buildCard(r){
+  const id = r.robot_id, i = r.info, el = document.createElement("div");
+  el.className = "card"; el.style.setProperty("--c", col(id));
+  el.innerHTML = `
+    <div class="row head"><div><span class="rid">${id}</span> <span class="vendor">${i.vendor} · ${i.model}</span></div>
+      <span class="state" data-f="state"></span></div>
+    <div class="row" style="margin-top:4px"><span class="proto">${i.protocol.toUpperCase()}</span>
+      <span class="vendor">caps: ${i.capabilities.join(", ")} · prio ${r.priority}</span></div>
+    <div class="kv">
+      <div><span>battery</span><b data-f="battery"></b><div class="bar"><i data-f="bar"></i></div></div>
+      <div><span>telemetry</span><b data-f="hz"></b></div>
+      <div><span>speed</span><b data-f="speed"></b></div>
+      <div><span>position</span><b data-f="pos"></b></div>
+      <div><span>node</span><b data-f="node"></b></div>
+      <div><span>odometer</span><b data-f="odo"></b></div>
+    </div>
+    <div class="note" data-f="note"></div>
+    <div class="bar" style="margin:2px 0 4px"><i data-f="work" style="width:0;background:var(--warn)"></i></div>
+    <div class="ctl">
+      <span class="seg"><button data-a="auto">AUTO</button><button data-a="manual">MANUAL</button></span>
+      <select data-a="target">${stationOptions()}</select><button class="small" data-a="go">Go</button>
+      <div class="jog"><button class="n" data-a="jog" data-d="north">▲</button><button class="w" data-a="jog" data-d="west">◀</button>
+        <button class="s" data-a="jog" data-d="south">▼</button><button class="e" data-a="jog" data-d="east">▶</button></div>
+    </div>
+    <div class="btns">
+      <button class="small" data-a="stop" title="Stop at the next node">Stop</button>
+      <button class="small" data-a="pause" title="Instant stop through the robot's own pause"></button>
+      <button class="small" data-a="home" title="Back to its charger, rejoins automatic work">Home</button>
+      <button class="small" data-a="link" title="Simulate 10 s communication loss">Drop link 10 s</button>
+    </div>`;
+  const f = k => el.querySelector(`[data-f="${k}"]`);
+  const fields = {state:f("state"), battery:f("battery"), bar:f("bar"), hz:f("hz"), speed:f("speed"), pos:f("pos"),
+                  node:f("node"), odo:f("odo"), note:f("note"), work:f("work"),
+                  auto:el.querySelector('[data-a="auto"]'), manual:el.querySelector('[data-a="manual"]'),
+                  pause:el.querySelector('[data-a="pause"]')};
+  el.querySelector(".head").onclick = ev => { ev.stopPropagation(); select(id, true); };
+  el.addEventListener("click", async ev => {
+    const b = ev.target.closest("button"); if(!b) return;
+    const a = b.dataset.a, base = `/api/robot/${id}`;
+    if(a==="auto"||a==="manual"){ await post(`${base}/mode`, {mode:a}); }
+    else if(a==="go"){ const t = el.querySelector('[data-a="target"]').value;
+      const j = await post(`${base}/goto`, {target:t}); if(j) toast(`${id} → ${t}`, true); }
+    else if(a==="jog"){ const j = await post(`${base}/jog`, {direction:b.dataset.d}); if(j) toast(`${id} → ${j.node}`, true); }
+    else if(a==="stop"){ await post(`${base}/stop`); }
+    else if(a==="pause"){ const r = STATE.robots.find(x=>x.robot_id===id); await post(`${base}/${r.operator_paused?"resume":"pause"}`); }
+    else if(a==="home"){ const j = await post(`${base}/home`); if(j) toast(`${id} going home to ${j.node}`, true); }
+    else if(a==="link"){ await post(`${base}/linkloss`, {seconds:10}); }
+    select(id);
+  });
+  $("robots").appendChild(el);
+  CARDS[id] = {el, fields};
+}
+function updateCard(r){
+  if(!CARDS[r.robot_id]) buildCard(r);
+  const {el, fields:f} = CARDS[r.robot_id], off = r.state==="OFFLINE";
+  el.classList.toggle("off", off); el.classList.toggle("sel", r.robot_id===SELECTED);
+  f.state.className = `state s-${r.state}`; f.state.textContent = r.state;
+  f.battery.textContent = `${fmt(r.battery,0)}%`; f.bar.style.width = `${r.battery}%`;
+  f.bar.style.background = r.battery<30?"var(--bad)":r.battery<55?"var(--warn)":"var(--ok)";
+  f.hz.textContent = `${fmt(r.telemetry_hz)} Hz`; f.speed.textContent = `${fmt(r.speed,2)} m/s`;
+  f.pos.textContent = `${fmt(r.x)}, ${fmt(r.y)}`; f.node.textContent = r.current_node||"—"; f.odo.textContent = `${fmt(r.odometer_m)} m`;
+  let note = "";
+  if(off) note = "No telemetry — holding its reserved nodes until it reports again";
+  else if(r.safety_stop) note = "Robot's own safety stop is active (not overridden)";
+  else if(r.operator_paused) note = "Paused by operator";
+  else if(r.waiting_for) note = `Waiting for ${r.waiting_for} to clear the way`;
+  else if(r.extra && r.extra.escort && r.extra.escort.waiting_for_guest) note = `${r.task||""} · waiting for the passenger to catch up`;
+  else if(r.task && r.work_left_s != null) note = `${r.task} · ${r.work} (${Math.ceil(r.work_left_s)} s left)`;
+  else if(r.task && r.work) note = `${r.task} · ${r.work}`;
+  else if(r.task) note = `${r.task} · ${r.task_status.replace("_"," ").toLowerCase()}`;
+  else if(r.rest_left_s != null) note = `Job done · pausing ${Math.ceil(r.rest_left_s)} s before the next one`;
+  else if(r.goal==="manual") note = `Driving to ${r.manual_goal} (manual)`;
+  else if(r.goal==="home") note = `Returning to ${r.home}`;
+  else if(r.mode==="manual") note = `Manual · parked at ${r.current_node} — waiting for your command`;
+  f.note.textContent = note;
+  f.work.style.width = (r.work_left_s != null && r.work_total_s) ? `${100*(1 - r.work_left_s/r.work_total_s)}%` : "0";
+  f.auto.classList.toggle("on", r.mode==="auto"); f.manual.classList.toggle("on", r.mode==="manual");
+  f.pause.textContent = r.operator_paused ? "Resume" : "Pause";
+}
+function select(id, toggle=false){ SELECTED = (toggle && SELECTED===id) ? null : id;
+  cv.classList.toggle("aim", !!SELECTED); if(STATE) render(); }
+function evClass(t){
+  if(/lost|violation|error|fleet_stop$|safety/.test(t)) return "bad";
+  if(/waiting|unsupported|paused|injected|rerouted/.test(t)) return "warn";
+  if(/completed|resolved|restored|cleared|docked/.test(t)) return "ok";
+  return "";
+}
+function evText(e){
+  return Object.entries(e).filter(([k])=>!["t","iso","type"].includes(k))
+    .map(([k,v])=>`${k}=${Array.isArray(v)?v.join("→"):v}`).join("  ");
+}
+function render(){
+  const s = STATE, m = s.metrics;
+  $("m-done").textContent=m.tasks_done; $("m-open").textContent=m.tasks_open; $("m-conf").textContent=m.conflicts;
+  $("m-dead").textContent=m.deadlocks_resolved; $("m-safe").textContent=m.safety_stops;
+  $("m-link").textContent=m.link_losses; $("m-speed").textContent=m.speed_violations;
+  $("status").className = "pill " + (s.estopped?"stop":"live"); $("status").textContent = s.estopped?"FLEET STOPPED":"LIVE";
+  $("estop").textContent = s.estopped ? "RELEASE STOP" : "FLEET STOP"; $("estop").classList.toggle("on", s.estopped);
+  $("auto").checked = s.auto_tasks;
+  $("clock").textContent = `uptime ${Math.floor(s.uptime_s/60)}m ${Math.floor(s.uptime_s%60)}s`;
+  $("fleetsize").textContent = `${s.robots.filter(r=>r.state!=="OFFLINE").length}/${s.robots.length} online · ${new Set(s.robots.map(r=>r.info.vendor)).size} vendors`;
+  s.robots.forEach(updateCard);
+  const tsig = JSON.stringify(s.tasks.map(t=>[t.task_id,t.status,t.robot_id]));
+  if(tsig !== render.tsig){ render.tsig = tsig;
+    const capable = cap => s.robots.filter(r=>r.info.capabilities.includes(cap)).map(r=>r.robot_id);
+    $("tasks").innerHTML = s.tasks.map(t=>{
+      const open = !["DONE","FAILED"].includes(t.status);
+      const btns = (t.status==="QUEUED" ? capable(t.capability).map(id=>`<button data-assign="${t.task_id}" data-r="${id}" title="Give this task to ${id}">→ ${id}</button>`).join("") : "")
+                 + (open ? `<button data-cancel="${t.task_id}" title="Cancel task">✕</button>` : "");
+      return `<div class="item"><span>${t.task_id}</span>
+        <span>${t.kind} · ${t.pickup} → ${t.dropoff}<br><span class="muted">${t.robot_id?("robot "+t.robot_id):"unassigned"} · ${t.source}</span></span>
+        <span><span class="st st-${t.status}">${t.status.replace("_"," ")}</span>${btns?`<div class="taskbtns">${btns}</div>`:""}</span></div>`;
+    }).join("") || `<div class="item muted">No tasks yet</div>`;
+  }
+  const esig = s.events.length ? s.events[0].t : 0;
+  if(esig !== render.esig){ render.esig = esig;
+    $("events").innerHTML = s.events.map(e=>`<div class="ev ${evClass(e.type)}"><span class="t">${e.iso.slice(11,23)}</span>
+      <span class="ty">${e.type}</span><span>${evText(e)}</span></div>`).join(""); }
+  draw();
+}
+
+// ---------------------------------------------------------------- controls
+function fillSelect(sel, items){ sel.innerHTML = items.map(v=>`<option>${v}</option>`).join(""); }
+function onKind(){ const t = SITE.task_templates[$("kind").value];
+  fillSelect($("pickup"), t.pickups); fillSelect($("dropoff"), t.dropoffs); }
+$("kind").onchange = onKind;
+$("addTask").onclick = () => post("/api/task", {kind:$("kind").value, pickup:$("pickup").value, dropoff:$("dropoff").value});
+$("estop").onclick = () => post(STATE && STATE.estopped ? "/api/release" : "/api/estop");
+$("auto").onchange = e => post("/api/auto", {on:e.target.checked});
+$("tasks").addEventListener("click", async ev => {
+  const b = ev.target.closest("button"); if(!b) return;
+  if(b.dataset.assign){ const j = await post(`/api/task/${b.dataset.assign}/assign`, {robot:b.dataset.r});
+    if(j) toast(`${b.dataset.assign} given to ${b.dataset.r}`, true); }
+  if(b.dataset.cancel){ await post(`/api/task/${b.dataset.cancel}/cancel`); }
+});
+cv.addEventListener("click", async ev => {
+  if(!SITE || !STATE) return;
+  const rect = cv.getBoundingClientRect(), px = (ev.clientX-rect.left)*cv.width/rect.width, py = (ev.clientY-rect.top)*cv.height/rect.height;
+  const {s,X,Y} = tf(), [x0,y0,x1,y1] = SITE.bounds;
+  const wx = x0 + (px - X(x0))/s, wy = y1 - (py - Y(y1))/s;
+  const hit = STATE.robots.find(r => Math.hypot(r.x-wx, r.y-wy) < 0.6);
+  if(hit){ SELECTED = hit.robot_id; cv.classList.add("aim"); render(); return; }
+  if(!SELECTED){ toast("Select a robot first (click it on the map or its card)"); return; }
+  const j = await post(`/api/robot/${SELECTED}/goto`, {x:wx, y:wy});
+  if(j) toast(`${SELECTED} → ${j.node}`, true);
+});
+document.addEventListener("keydown", async ev => {
+  if(!SELECTED || ["SELECT","INPUT","TEXTAREA"].includes(document.activeElement.tagName)) return;
+  const d = {ArrowUp:"north", ArrowDown:"south", ArrowLeft:"west", ArrowRight:"east"}[ev.key];
+  if(d){ ev.preventDefault(); const j = await post(`/api/robot/${SELECTED}/jog`, {direction:d}); if(j) toast(`${SELECTED} → ${j.node}`, true); }
+  else if(ev.key===" "){ ev.preventDefault(); await post(`/api/robot/${SELECTED}/stop`); }
+  else if(ev.key==="Escape"){ SELECTED = null; cv.classList.remove("aim"); render(); }
+});
+
+function fitCanvas(){
+  const [x0,y0,x1,y1] = SITE.bounds;
+  cv.width = 1200; cv.height = Math.round(1200 * (y1-y0)/(x1-x0)) + 40;
+}
+async function boot(){
+  SITE = await (await fetch("/api/site")).json();
+  $("subtitle").textContent = `vendor-agnostic fleet orchestration · ${SITE.title}`;
+  document.title = `Confluence · ${SITE.title}`;
+  fitCanvas();
+  fillSelect($("kind"), Object.keys(SITE.task_templates)); onKind();
+  const tick = async () => {
+    try { STATE = await (await fetch("/api/state")).json(); render(); } catch(e) { $("status").textContent="DISCONNECTED"; }
+    setTimeout(tick, 400);
+  };
+  tick();
+}
+boot();
+</script>
+</body>
+</html>

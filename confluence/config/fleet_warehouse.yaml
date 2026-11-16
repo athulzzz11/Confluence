@@ -1,0 +1,48 @@
+# Confluence fleet integration config.
+# This is the ONLY place Confluence learns about robots: who made them, how to
+# reach them, and what they can do. Adding a robot from a new brand = adding an
+# entry here (plus an adapter if its protocol is new).
+
+site: warehouse           # site map: confluence/sites/warehouse.py
+log_dir: ~/.ros/confluence
+dashboard_port: 8080
+auto_tasks: true          # generate a steady stream of demo tasks
+task_interval_s: 10
+
+robots:
+  - id: r1
+    vendor: Nimbus Robotics
+    model: AMR-S
+    protocol: ros2
+    endpoint: {namespace: /r1}
+    capabilities: [tote]
+    priority: 3
+    home_charger: CHG1
+
+  - id: r2
+    vendor: Atlas Mobility
+    model: MT-600
+    protocol: rest
+    endpoint: {url: "http://127.0.0.1:8081", poll_hz: 2}
+    capabilities: [tote, bin]
+    priority: 1
+    home_charger: CHG2
+
+  - id: r3
+    vendor: Tugwell
+    model: TX-2 tugger
+    protocol: tcp
+    endpoint: {host: 127.0.0.1, port: 9090, battery_v_empty: 22.0, battery_v_full: 25.2}
+    capabilities: [tow]
+    priority: 4
+    home_charger: CHG3
+
+  - id: r4
+    vendor: Kessler Intralogistics
+    model: K-Lift 12
+    protocol: vda5050
+    endpoint: {broker_host: 127.0.0.1, broker_port: 1883, interface: uagv,
+               manufacturer: Kessler, serial_number: KL12-0004}
+    capabilities: [pallet]
+    priority: 2
+    home_charger: CHG4
